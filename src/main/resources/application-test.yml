@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/payflow_test
+    username: test
+    password: test
+
+  jpa:
+    show-sql: true
+
+logging:
+  level:
+    com.payflow: DEBUG

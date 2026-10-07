@@ -1,0 +1,102 @@
+spring:
+  application:
+    name: payflow
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/payflow
+    username: payflow
+    password: payflow_password
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+    prometheus:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+      environment: ${ENVIRONMENT:development}
+
+logging:
+  level:
+    com.payflow: INFO
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId:-NO-CORRELATION-ID}] %logger{36} - %msg%n"
+
+# Razorpay Gateway Configuration
+razorpay:
+  key-id: ${RAZORPAY_KEY_ID:}
+  key-secret: ${RAZORPAY_KEY_SECRET:}
+  webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
+  timeout-seconds: 30
+  test-mode: true
+
+# Kafka Configuration
+spring:
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: payflow-consumer-group
+      enable-auto-commit: false
+      auto-offset-reset: earliest
+    producer:
+      acks: all
+      retries: 3
+
+# Event Configuration
+payflow:
+  events:
+    topic: payflow.payment.events
+    outbox:
+      publish-interval-ms: 5000
+      max-retry-count: 5
+
+# Kafka Topics
+kafka:
+  topic:
+    payment-events: payflow.payment.events
+    refund-events: payflow.refund.events
+    dispute-events: payflow.dispute.events
+  consumer:
+    group-id: payflow-consumer-group
