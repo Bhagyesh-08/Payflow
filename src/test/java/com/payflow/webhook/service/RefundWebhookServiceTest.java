@@ -2,6 +2,7 @@ package com.payflow.webhook.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.payflow.common.exception.BusinessException;
+import com.payflow.common.observability.BusinessMetrics;
 import com.payflow.event.service.RefundEventService;
 import com.payflow.merchant.entity.Merchant;
 import com.payflow.payment.entity.Payment;
@@ -29,6 +30,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class RefundWebhookServiceTest {
+
+    @Mock
+    private BusinessMetrics metrics;
 
     @Mock
     private WebhookEventRepository webhookEventRepository;
@@ -69,6 +73,7 @@ class RefundWebhookServiceTest {
     void setUp() {
         objectMapper = new ObjectMapper();
         webhookService = new WebhookService(
+            metrics,
             webhookEventRepository,
             paymentRepository,
             refundRepository,

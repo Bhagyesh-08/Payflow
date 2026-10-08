@@ -2,6 +2,7 @@ package com.payflow.payment.service;
 
 import com.payflow.common.exception.BusinessException;
 import com.payflow.common.idempotency.IdempotencyService;
+import com.payflow.common.observability.BusinessMetrics;
 import com.payflow.event.service.PaymentEventService;
 import com.payflow.infrastructure.gateway.PaymentGateway;
 import com.payflow.merchant.entity.Merchant;
@@ -56,6 +57,9 @@ class PaymentServiceTest {
 
     @Mock
     private PaymentEventService paymentEventService;
+
+    @Mock
+    private BusinessMetrics metrics;
 
     @InjectMocks
     private PaymentService paymentService;

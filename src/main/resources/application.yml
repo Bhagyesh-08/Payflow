@@ -45,7 +45,7 @@ management:
       base-path: /actuator
   endpoint:
     health:
-      show-details: always
+      show-details: when-authorized  # Hide details from unauthenticated users
     prometheus:
       enabled: true
   metrics:
@@ -55,6 +55,18 @@ management:
     tags:
       application: ${spring.application.name}
       environment: ${ENVIRONMENT:development}
+
+# OpenAPI / Swagger Configuration
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: false  # Don't expose actuator endpoints in Swagger
 
 logging:
   level:

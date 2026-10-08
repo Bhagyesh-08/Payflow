@@ -1,5 +1,6 @@
 package com.payflow.event.consumer;
 
+import com.payflow.common.observability.BusinessMetrics;
 import com.payflow.event.domain.PaymentEvent;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,6 +26,9 @@ class PaymentEventConsumerTest {
 
     @Mock
     private ProcessedEventRepository processedEventRepository;
+
+    @Mock
+    private BusinessMetrics metrics;
 
     @Mock
     private Acknowledgment acknowledgment;

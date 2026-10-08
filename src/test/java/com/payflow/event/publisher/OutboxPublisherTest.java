@@ -1,6 +1,7 @@
 package com.payflow.event.publisher;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.payflow.common.observability.BusinessMetrics;
 import com.payflow.event.domain.PaymentEvent;
 import com.payflow.event.outbox.OutboxEvent;
 import com.payflow.event.outbox.OutboxEventRepository;
@@ -38,6 +39,9 @@ class OutboxPublisherTest {
     @Mock
     private ObjectMapper objectMapper;
 
+    @Mock
+    private BusinessMetrics metrics;
+
     @Captor
     private ArgumentCaptor<OutboxEvent> outboxEventCaptor;
 
@@ -45,7 +49,7 @@ class OutboxPublisherTest {
 
     @BeforeEach
     void setUp() {
-        outboxPublisher = new OutboxPublisher(outboxEventRepository, kafkaTemplate, objectMapper);
+        outboxPublisher = new OutboxPublisher(outboxEventRepository, kafkaTemplate, objectMapper, metrics);
         ReflectionTestUtils.setField(outboxPublisher, "topic", "payflow.payment.events");
         ReflectionTestUtils.setField(outboxPublisher, "maxRetryCount", 5);
     }

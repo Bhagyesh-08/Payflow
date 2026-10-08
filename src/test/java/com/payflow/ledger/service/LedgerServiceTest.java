@@ -38,6 +38,9 @@ class LedgerServiceTest {
     @Mock
     private LedgerEntryRepository entryRepository;
 
+    @Mock
+    private com.payflow.common.observability.BusinessMetrics metrics;
+
     @InjectMocks
     private LedgerService ledgerService;
 

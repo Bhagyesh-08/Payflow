@@ -113,6 +113,8 @@ public class LedgerService {
 
             log.info("Ledger transaction created: reference={}, amount={} {}", 
                 transactionReference, amount, currency);
+            
+            metrics.incrementLedgerTransactionsCreated();
 
             return transaction;
 
@@ -120,6 +122,10 @@ public class LedgerService {
             log.warn("Duplicate ledger transaction detected: reference={}", transactionReference);
             return transactionRepository.findByTransactionReference(transactionReference)
                 .orElseThrow(() -> new BusinessException("LEDGER_CREATION_FAILED", "Failed to create ledger transaction"));
+        } catch (Exception e) {
+            log.error("Failed to create ledger transaction: reference={}", transactionReference, e);
+            metrics.incrementLedgerTransactionsFailed();
+            throw e;
         }
     }
 
@@ -213,6 +219,16 @@ public class LedgerService {
     @Transactional(readOnly = true)
     public List<LedgerTransaction> getByMerchantId(Long merchantId) {
         return transactionRepository.findByMerchantIdOrderByCreatedAtDesc(merchantId);
+    }
+
+    /**
+     * Retrieves paginated ledger transactions for a merchant.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<LedgerTransaction> getByMerchantId(
+            Long merchantId, 
+            org.springframework.data.domain.Pageable pageable) {
+        return transactionRepository.findByMerchantId(merchantId, pageable);
     }
 
     /**

@@ -5,12 +5,18 @@ import com.payflow.ledger.entity.LedgerEntry;
 import com.payflow.ledger.entity.LedgerTransaction;
 import com.payflow.ledger.mapper.LedgerMapper;
 import com.payflow.ledger.service.LedgerService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Ledger REST API.
@@ -21,6 +27,7 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/ledger")
 @RequiredArgsConstructor
+@Tag(name = "Ledger", description = "Immutable double-entry ledger for payment transactions")
 public class LedgerController {
 
     private final LedgerService ledgerService;
@@ -30,6 +37,7 @@ public class LedgerController {
      * Get ledger transaction by ID.
      */
     @GetMapping("/transactions/{id}")
+    @Operation(summary = "Get ledger transaction by ID")
     public ResponseEntity<LedgerTransactionResponse> getTransactionById(@PathVariable Long id) {
         LedgerTransaction transaction = ledgerService.getByPaymentId(String.valueOf(id));
         List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(transaction.getId());
@@ -40,6 +48,7 @@ public class LedgerController {
      * Get ledger transactions for a payment.
      */
     @GetMapping("/payments/{paymentId}")
+    @Operation(summary = "Get ledger transactions for a payment")
     public ResponseEntity<LedgerTransactionResponse> getLedgerByPaymentId(@PathVariable String paymentId) {
         LedgerTransaction transaction = ledgerService.getByPaymentId(paymentId);
         List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(transaction.getId());
@@ -47,18 +56,24 @@ public class LedgerController {
     }
 
     /**
-     * Get all ledger transactions for a merchant.
+     * Get all ledger transactions for a merchant (paginated).
      */
     @GetMapping("/merchants/{merchantId}")
-    public ResponseEntity<List<LedgerTransactionResponse>> getLedgerByMerchantId(@PathVariable Long merchantId) {
-        List<LedgerTransaction> transactions = ledgerService.getByMerchantId(merchantId);
+    @Operation(summary = "Get paginated ledger transactions for a merchant")
+    public ResponseEntity<Page<LedgerTransactionResponse>> getLedgerByMerchantId(
+            @PathVariable Long merchantId,
+            @Parameter(description = "Page number (0-indexed)") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size") @RequestParam(defaultValue = "20") int size,
+            @Parameter(description = "Sort by field") @RequestParam(defaultValue = "createdAt") String sortBy,
+            @Parameter(description = "Sort direction") @RequestParam(defaultValue = "DESC") Sort.Direction direction) {
         
-        List<LedgerTransactionResponse> responses = transactions.stream()
-            .map(tx -> {
-                List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(tx.getId());
-                return ledgerMapper.toResponse(tx, entries);
-            })
-            .collect(Collectors.toList());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+        Page<LedgerTransaction> transactions = ledgerService.getByMerchantId(merchantId, pageable);
+        
+        Page<LedgerTransactionResponse> responses = transactions.map(tx -> {
+            List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(tx.getId());
+            return ledgerMapper.toResponse(tx, entries);
+        });
         
         return ResponseEntity.ok(responses);
     }

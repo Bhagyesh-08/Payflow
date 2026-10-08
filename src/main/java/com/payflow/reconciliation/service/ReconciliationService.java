@@ -306,10 +306,30 @@ public class ReconciliationService {
     }
 
     /**
+     * Retrieves paginated reconciliation runs for a merchant.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ReconciliationRun> getRunsByMerchantId(
+            Long merchantId,
+            org.springframework.data.domain.Pageable pageable) {
+        return runRepository.findByMerchantId(merchantId, pageable);
+    }
+
+    /**
      * Retrieves discrepancies for a merchant.
      */
     @Transactional(readOnly = true)
     public List<ReconciliationRecord> getDiscrepancies(Long merchantId) {
         return recordRepository.findByMerchantIdAndResult(merchantId, ReconciliationResult.DISCREPANCY);
+    }
+
+    /**
+     * Retrieves paginated discrepancies for a merchant.
+     */
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<ReconciliationRecord> getDiscrepancies(
+            Long merchantId,
+            org.springframework.data.domain.Pageable pageable) {
+        return recordRepository.findByMerchantIdAndResult(merchantId, ReconciliationResult.DISCREPANCY, pageable);
     }
 }

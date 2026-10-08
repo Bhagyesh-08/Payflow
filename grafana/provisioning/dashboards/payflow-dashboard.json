@@ -1,0 +1,324 @@
+{
+  "dashboard": {
+    "title": "PayFlow Business Metrics",
+    "tags": ["payflow", "payments", "business"],
+    "timezone": "browser",
+    "refresh": "10s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Payment Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "rate(payflow_payments_created_total[5m])",
+            "legendFormat": "Created",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(payflow_payments_authorized_total[5m])",
+            "legendFormat": "Authorized",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(payflow_payments_captured_total[5m])",
+            "legendFormat": "Captured",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(payflow_payments_failed_total[5m])",
+            "legendFormat": "Failed",
+            "refId": "D"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Payment Success Rate",
+        "type": "gauge",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(payflow_payments_captured_total[5m])) / (sum(rate(payflow_payments_captured_total[5m])) + sum(rate(payflow_payments_failed_total[5m]))) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "min": 0,
+            "max": 100,
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 90, "color": "yellow"},
+                {"value": 95, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 3,
+        "title": "Refund Operations",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "targets": [
+          {
+            "expr": "rate(payflow_refunds_requested_total[5m])",
+            "legendFormat": "Requested",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(payflow_refunds_succeeded_total[5m])",
+            "legendFormat": "Succeeded",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(payflow_refunds_failed_total[5m])",
+            "legendFormat": "Failed",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Refund Gateway Latency (p95)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(payflow_refund_gateway_latency_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "title": "Webhook Processing",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "rate(payflow_webhooks_received_total[5m])",
+            "legendFormat": "Received - {{eventType}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(payflow_webhooks_rejected_total[5m])",
+            "legendFormat": "Rejected - {{reason}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(payflow_webhooks_duplicate_total[5m])",
+            "legendFormat": "Duplicate",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(payflow_webhooks_processing_errors_total[5m])",
+            "legendFormat": "Errors",
+            "refId": "D"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "title": "Webhook Processing Latency (p50, p95, p99)",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(payflow_webhook_processing_latency_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(payflow_webhook_processing_latency_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(payflow_webhook_processing_latency_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ms"
+          }
+        }
+      },
+      {
+        "id": 7,
+        "title": "Dispute Operations",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(increase(payflow_disputes_created_total[1h]))",
+            "legendFormat": "Created (1h)",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Disputes Won",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(increase(payflow_disputes_won_total[1h]))",
+            "legendFormat": "Won (1h)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 9,
+        "title": "Disputes Lost",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 12, "y": 24},
+        "targets": [
+          {
+            "expr": "sum(increase(payflow_disputes_lost_total[1h]))",
+            "legendFormat": "Lost (1h)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 10,
+        "title": "Outbox & Event Processing",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(payflow_outbox_events_created_total[5m])",
+            "legendFormat": "Created - {{eventType}}",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(payflow_outbox_events_published_total[5m])",
+            "legendFormat": "Published - {{eventType}}",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(payflow_outbox_events_failed_total[5m])",
+            "legendFormat": "Failed - {{eventType}}",
+            "refId": "C"
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Event Consumer Duplicate Detection",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 28},
+        "targets": [
+          {
+            "expr": "rate(payflow_duplicate_events_total[5m])",
+            "legendFormat": "{{consumer}}",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 12,
+        "title": "Ledger Transactions",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 36},
+        "targets": [
+          {
+            "expr": "sum(increase(payflow_ledger_transactions_created_total[1h]))",
+            "legendFormat": "Created (1h)",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 13,
+        "title": "Ledger Failures",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 36},
+        "targets": [
+          {
+            "expr": "sum(increase(payflow_ledger_transactions_failed_total[1h]))",
+            "legendFormat": "Failed (1h)",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {"mode": "thresholds"},
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 14,
+        "title": "Reconciliation",
+        "type": "graph",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 40},
+        "targets": [
+          {
+            "expr": "rate(payflow_reconciliation_runs_total[5m])",
+            "legendFormat": "Runs",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(payflow_reconciliation_matched_total[5m])",
+            "legendFormat": "Matched",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(payflow_reconciliation_discrepancies_total[5m])",
+            "legendFormat": "Discrepancies",
+            "refId": "C"
+          }
+        ]
+      }
+    ]
+  }
+}

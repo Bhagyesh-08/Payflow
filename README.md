@@ -91,6 +91,13 @@ src/main/java/com/payflow/
 - Prometheus business metrics (payments, refunds, disputes, webhooks)
 - Health checks for dependencies (PostgreSQL, Redis, Kafka)
 
+### API Quality (Phase 9)
+- **OpenAPI/Swagger Documentation**: Interactive API docs at `/swagger-ui.html`
+- **Pagination Support**: All list endpoints support pagination with configurable page size and sorting
+- **Rate Limiting Boundary**: Interface-only abstraction documenting rate limiting strategy (implementation at infrastructure layer)
+- **Consistent Error Responses**: Standardized error codes and HTTP status codes
+- **Actuator Hardening**: Secured management endpoints with health details restricted to authorized users
+
 ## 🚀 Getting Started
 
 ### Prerequisites
@@ -123,8 +130,11 @@ mvn spring-boot:run
 
 5. **Access endpoints**
 - Application: http://localhost:8080
+- API Documentation: http://localhost:8080/swagger-ui.html
+- OpenAPI JSON: http://localhost:8080/v3/api-docs
 - Health: http://localhost:8080/actuator/health
 - Metrics: http://localhost:8080/actuator/prometheus
+- Grafana Dashboard: http://localhost:3000 (admin/admin)
 
 See [QUICK_START.md](QUICK_START.md) for detailed setup instructions and API examples.
 
@@ -141,12 +151,20 @@ mvn test -Dtest=PaymentServiceTest
 mvn clean verify
 ```
 
-**Test Coverage**: 160/160 unit tests passing (integration tests require Docker environment)
+**Test Coverage**: 166/175 tests passing
+- **Passing**: 166 unit tests ✅
+- **Environment Failures**: 9 Docker/Testcontainers tests (Windows Docker named pipe issue)
+  - PayFlowApplicationTests (Spring context with Testcontainers)
+  - PaymentConcurrencyTest (concurrent testing)
+  - LedgerDisputeTest (7 dispute ledger tests)
+
+Note: Environment failures are infrastructure-related, not application code defects.
 
 ## 📖 Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture, design decisions, and patterns
 - **[QUICK_START.md](QUICK_START.md)** - Setup instructions and API usage examples
+- **[OBSERVABILITY.md](OBSERVABILITY.md)** - Monitoring, metrics, logging, and operational guide
 - **[LEDGER.md](LEDGER.md)** - Double-entry accounting system design
 - **[RECONCILIATION.md](RECONCILIATION.md)** - Financial reconciliation process
 - **[PRODUCTION_READINESS_AUDIT.md](PRODUCTION_READINESS_AUDIT.md)** - Comprehensive system audit and quality assessment

@@ -41,18 +41,28 @@ public class SecurityConfig {
                 .requestMatchers("/actuator/health").permitAll()
                 .requestMatchers("/actuator/info").permitAll()
                 
+                // OpenAPI/Swagger documentation (public for development)
+                .requestMatchers("/v3/api-docs/**").permitAll()
+                .requestMatchers("/swagger-ui/**").permitAll()
+                .requestMatchers("/swagger-ui.html").permitAll()
+                
                 // Webhook endpoints (use signature verification, not API key)
                 .requestMatchers(HttpMethod.POST, "/api/v1/webhooks/**").permitAll()
                 
                 // Protected business endpoints (require authentication)
                 .requestMatchers("/api/v1/payments/**").authenticated()
                 .requestMatchers("/api/v1/refunds/**").authenticated()
+                .requestMatchers("/api/v1/disputes/**").authenticated()
                 .requestMatchers("/api/v1/orders/**").authenticated()
                 .requestMatchers("/api/v1/merchants/**").authenticated()
                 .requestMatchers("/api/v1/ledger/**").authenticated()
                 .requestMatchers("/api/v1/reconciliation/**").authenticated()
                 
-                // Block actuator management endpoints
+                // Prometheus metrics (consider restricting in production)
+                .requestMatchers("/actuator/prometheus").permitAll()
+                .requestMatchers("/actuator/metrics").permitAll()
+                
+                // Block other actuator management endpoints
                 .requestMatchers("/actuator/**").denyAll()
                 
                 // Any other request requires authentication

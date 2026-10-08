@@ -51,6 +51,9 @@ class RefundServiceTest {
     @Mock
     private RefundStateMachine stateMachine;
 
+    @Mock
+    private com.payflow.common.observability.BusinessMetrics metrics;
+
     @InjectMocks
     private RefundService refundService;
 
