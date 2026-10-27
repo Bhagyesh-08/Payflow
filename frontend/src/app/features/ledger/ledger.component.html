@@ -1,0 +1,135 @@
+<div class="ledger-page">
+  <div class="page-header">
+    <div>
+      <h2>Ledger Explorer</h2>
+      <p class="page-subtitle">Immutable double-entry ledger transactions (read-only)</p>
+    </div>
+  </div>
+
+  @if (loading) {
+    <app-loading-spinner />
+  }
+
+  @if (error) {
+    <div class="error-banner">
+      <span class="error-icon">⚠️</span>
+      <div>
+        <strong>Error</strong>
+        <p>{{ error }}</p>
+      </div>
+    </div>
+  }
+
+  @if (!loading && !error && transactions.length === 0) {
+    <app-empty-state
+      icon="📒"
+      title="No Ledger Transactions"
+      message="No transactions have been recorded yet"
+    />
+  }
+
+  @if (!loading && !error && transactions.length > 0) {
+    <div class="ledger-table-container">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Reference</th>
+            <th>Payment ID</th>
+            <th>Type</th>
+            <th>Amount</th>
+            <th>Description</th>
+            <th>Date</th>
+            <th>Balance Check</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tx of transactions; track tx.id) {
+            <tr class="transaction-row" [class.expanded]="isRowExpanded(tx.id)">
+              <td>
+                <button
+                  class="expand-btn"
+                  (click)="toggleRow(tx.id)"
+                  [attr.aria-expanded]="isRowExpanded(tx.id)"
+                >
+                  {{ isRowExpanded(tx.id) ? '▼' : '▶' }}
+                </button>
+              </td>
+              <td class="mono">{{ tx.transactionReference }}</td>
+              <td class="mono">{{ tx.paymentId }}</td>
+              <td>
+                <span class="type-badge">{{ tx.transactionType }}</span>
+              </td>
+              <td class="amount">{{ tx.amount }} {{ tx.currency }}</td>
+              <td class="description">{{ tx.description }}</td>
+              <td class="date">{{ tx.createdAt | date: 'short' }}</td>
+              <td>
+                @if (verifyBalance(tx); as balance) {
+                  <span [class]="balance.balanced ? 'balance-ok' : 'balance-error'">
+                    {{ balance.balanced ? '✓' : '✗' }} {{ balance.message }}
+                  </span>
+                }
+              </td>
+            </tr>
+            @if (isRowExpanded(tx.id)) {
+              <tr class="entries-row">
+                <td colspan="8">
+                  <div class="entries-container">
+                    <h4>Ledger Entries</h4>
+                    <table class="entries-table">
+                      <thead>
+                        <tr>
+                          <th>Account Code</th>
+                          <th>Account Type</th>
+                          <th>Entry Type</th>
+                          <th>Amount</th>
+                          <th>Reference</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (entry of tx.entries; track entry.id) {
+                          <tr>
+                            <td class="mono">{{ entry.accountCode }}</td>
+                            <td>{{ entry.accountType }}</td>
+                            <td>
+                              <span [class]="entry.entryType === 'DEBIT' ? 'entry-debit' : 'entry-credit'">
+                                {{ entry.entryType }}
+                              </span>
+                            </td>
+                            <td class="amount">{{ entry.amount }} {{ entry.currency }}</td>
+                            <td class="mono">{{ entry.reference }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <button
+        class="pagination-btn"
+        (click)="previousPage()"
+        [disabled]="page?.first"
+      >
+        Previous
+      </button>
+      <span class="pagination-info">
+        Page {{ (page?.number ?? 0) + 1 }} of {{ page?.totalPages ?? 1 }}
+        ({{ page?.totalElements ?? 0 }} total transactions)
+      </span>
+      <button
+        class="pagination-btn"
+        (click)="nextPage()"
+        [disabled]="page?.last"
+      >
+        Next
+      </button>
+    </div>
+  }
+</div>

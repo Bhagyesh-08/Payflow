@@ -1,5 +1,7 @@
 package com.payflow.refund.controller;
 
+import com.payflow.common.exception.BusinessException;
+import com.payflow.common.security.SecurityUtils;
 import com.payflow.refund.dto.CreateRefundRequest;
 import com.payflow.refund.dto.RefundResponse;
 import com.payflow.refund.entity.Refund;
@@ -29,21 +31,28 @@ public class RefundController {
 
     /**
      * Creates refund for payment.
+     * Derives merchant identity from authenticated API-key principal.
+     * If legacy X-Merchant-Id header is supplied, validates that it matches the authenticated merchant.
      */
     @PostMapping("/payments/{paymentId}/refunds")
     @Operation(summary = "Create refund for a payment",
                description = "Creates a refund with idempotency protection. Full or partial refund supported.")
     public ResponseEntity<RefundResponse> createRefund(
             @PathVariable Long paymentId,
-            @Parameter(description = "Merchant ID from authentication context") 
-            @RequestHeader("X-Merchant-Id") Long merchantId,
+            @Parameter(description = "Optional legacy Merchant ID header; must match authenticated merchant if provided") 
+            @RequestHeader(value = "X-Merchant-Id", required = false) Long callerMerchantId,
             @Parameter(description = "Idempotency key for duplicate prevention", required = true)
             @RequestHeader("Idempotency-Key") String idempotencyKey,
             @Valid @RequestBody CreateRefundRequest request) {
 
+        Long authenticatedMerchantId = SecurityUtils.getAuthenticatedMerchantId();
+        if (callerMerchantId != null && !callerMerchantId.equals(authenticatedMerchantId)) {
+            throw new BusinessException("FORBIDDEN", "X-Merchant-Id header does not match authenticated merchant");
+        }
+
         Refund refund = refundService.createRefund(
             paymentId,
-            merchantId,
+            authenticatedMerchantId,
             request.getAmount(),
             request.getCurrency(),
             request.getReason(),
@@ -60,6 +69,7 @@ public class RefundController {
     @Operation(summary = "Get refund by ID")
     public ResponseEntity<RefundResponse> getRefund(@PathVariable String refundId) {
         Refund refund = refundService.getRefundById(refundId);
+        SecurityUtils.validateMerchantAccess(refund.getMerchant().getId());
         return ResponseEntity.ok(mapper.toResponse(refund));
     }
 
@@ -70,6 +80,9 @@ public class RefundController {
     @Operation(summary = "Get all refunds for a payment")
     public ResponseEntity<List<RefundResponse>> getPaymentRefunds(@PathVariable Long paymentId) {
         List<Refund> refunds = refundRepository.findByPaymentId(paymentId);
+        if (!refunds.isEmpty()) {
+            SecurityUtils.validateMerchantAccess(refunds.get(0).getMerchant().getId());
+        }
         List<RefundResponse> responses = refunds.stream()
             .map(mapper::toResponse)
             .collect(Collectors.toList());

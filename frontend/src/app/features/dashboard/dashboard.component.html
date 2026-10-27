@@ -1,0 +1,196 @@
+<div class="dashboard-page container">
+  <div class="page-header">
+    <div>
+      <h2>Dashboard</h2>
+      <p class="page-subtitle" *ngIf="merchantId">Merchant ID: {{ merchantId }}</p>
+      <p class="page-subtitle" *ngIf="!merchantId">Configure merchant credentials to view dashboard</p>
+    </div>
+    <button *ngIf="merchantId" class="btn btn-secondary" (click)="refresh()" [disabled]="loading">
+      {{ loading ? 'Loading...' : 'Refresh' }}
+    </button>
+  </div>
+
+  <div *ngIf="!merchantId" class="config-required">
+    <span class="icon">⚙️</span>
+    <h3>Configuration Required</h3>
+    <p>Please configure your merchant credentials in Settings to view the dashboard.</p>
+    <a routerLink="/settings" class="btn btn-primary">Go to Settings</a>
+  </div>
+
+  <div *ngIf="merchantId && !loading" class="dashboard-grid">
+    <!-- Quick Actions -->
+    <div class="widget quick-actions">
+      <h3 class="widget-title">Quick Actions</h3>
+      <div class="action-grid">
+        <a routerLink="/payments" class="action-card">
+          <span class="action-icon">💳</span>
+          <span class="action-label">Payments</span>
+        </a>
+        <a routerLink="/ledger" class="action-card">
+          <span class="action-icon">📒</span>
+          <span class="action-label">Ledger</span>
+        </a>
+        <a routerLink="/disputes" class="action-card">
+          <span class="action-icon">⚠️</span>
+          <span class="action-label">Disputes</span>
+        </a>
+        <a routerLink="/reconciliation" class="action-card">
+          <span class="action-icon">🔍</span>
+          <span class="action-label">Reconciliation</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Ledger Entries -->
+    <div class="widget ledger-widget">
+      <div class="widget-header">
+        <h3 class="widget-title">Recent Ledger Entries</h3>
+        <a routerLink="/ledger" class="widget-link">View All</a>
+      </div>
+
+      <div *ngIf="ledgersLoading" class="widget-loading">Loading...</div>
+      
+      <div *ngIf="ledgersError" class="widget-error">
+        <span>{{ ledgersError }}</span>
+      </div>
+
+      <div *ngIf="!ledgersLoading && !ledgersError && recentLedgers.length === 0" class="widget-empty">
+        No ledger entries found
+      </div>
+
+      <div *ngIf="!ledgersLoading && !ledgersError && recentLedgers.length > 0" class="ledger-list">
+        <div *ngFor="let ledger of recentLedgers" class="ledger-item">
+          <div class="ledger-info">
+            <span class="ledger-type">{{ ledger.transactionType }}</span>
+            <span class="ledger-ref">{{ ledger.transactionReference }}</span>
+          </div>
+          <span class="ledger-amount">
+            {{ formatAmount(ledger.amount, ledger.currency) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Disputes Overview -->
+    <div class="widget disputes-widget">
+      <div class="widget-header">
+        <h3 class="widget-title">Disputes</h3>
+        <a routerLink="/disputes" class="widget-link">View All</a>
+      </div>
+
+      <div *ngIf="disputesLoading" class="widget-loading">Loading...</div>
+      
+      <div *ngIf="disputesError" class="widget-error">
+        <span>{{ disputesError }}</span>
+      </div>
+
+      <div *ngIf="!disputesLoading && !disputesError && disputes.length === 0" class="widget-empty">
+        No disputes
+      </div>
+
+      <div *ngIf="!disputesLoading && !disputesError && disputes.length > 0">
+        <div class="dispute-stats">
+          <div class="stat-item">
+            <span class="stat-value">{{ disputes.length }}</span>
+            <span class="stat-label">Total</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ getDisputeStatusCount('OPEN') }}</span>
+            <span class="stat-label">Open</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ getDisputeStatusCount('WON') }}</span>
+            <span class="stat-label">Won</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-value">{{ getDisputeStatusCount('LOST') }}</span>
+            <span class="stat-label">Lost</span>
+          </div>
+        </div>
+
+        <div class="dispute-list">
+          <div *ngFor="let dispute of disputes.slice(0, 3)" class="dispute-item">
+            <div class="dispute-info">
+              <span class="dispute-id">{{ dispute.disputeId }}</span>
+              <span class="dispute-amount">{{ formatAmount(dispute.amount, dispute.currency) }}</span>
+            </div>
+            <app-status-badge [status]="dispute.status" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reconciliation Status -->
+    <div class="widget reconciliation-widget">
+      <div class="widget-header">
+        <h3 class="widget-title">Latest Reconciliation</h3>
+        <a routerLink="/reconciliation" class="widget-link">View All</a>
+      </div>
+
+      <div *ngIf="reconciliationLoading" class="widget-loading">Loading...</div>
+      
+      <div *ngIf="reconciliationError" class="widget-error">
+        <span>{{ reconciliationError }}</span>
+      </div>
+
+      <div *ngIf="!reconciliationLoading && !reconciliationError && !latestRun" class="widget-empty">
+        No reconciliation runs yet
+      </div>
+
+      <div *ngIf="!reconciliationLoading && !reconciliationError && latestRun" class="recon-details">
+        <div class="recon-header">
+          <span class="recon-gateway">{{ latestRun.gateway }}</span>
+          <span class="recon-date">{{ latestRun.businessDate }}</span>
+        </div>
+        
+        <div class="recon-stats">
+          <div class="recon-stat">
+            <span class="recon-label">Total</span>
+            <span class="recon-value">{{ latestRun.totalRecords ?? 'N/A' }}</span>
+          </div>
+          <div class="recon-stat">
+            <span class="recon-label">Matched</span>
+            <span class="recon-value success">{{ latestRun.matchedRecords ?? 'N/A' }}</span>
+          </div>
+          <div class="recon-stat">
+            <span class="recon-label">Discrepancies</span>
+            <span class="recon-value" [class.error]="latestRun.discrepancyRecords && latestRun.discrepancyRecords > 0">
+              {{ latestRun.discrepancyRecords ?? 'N/A' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="recon-footer">
+          <span class="recon-time">Started: {{ formatDate(latestRun.startedAt) }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- System Notices -->
+    <div class="widget notices-widget">
+      <h3 class="widget-title">System Notices</h3>
+      <div class="notice-list">
+        <div class="notice notice-warning">
+          <span class="notice-icon">⚠️</span>
+          <div>
+            <strong>Simulation Mode</strong>
+            <p>Disputes and reconciliation use mock/synthetic data</p>
+          </div>
+        </div>
+        <div class="notice notice-info">
+          <span class="notice-icon">ℹ️</span>
+          <div>
+            <strong>Development Environment</strong>
+            <p>This is a demonstration application for portfolio purposes</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="merchantId && loading" class="loading-overlay">
+    <div class="loading-spinner">
+      <p>Loading dashboard...</p>
+    </div>
+  </div>
+</div>

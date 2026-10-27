@@ -1,6 +1,7 @@
 package com.payflow.refund.service;
 
 import com.payflow.common.exception.BusinessException;
+import com.payflow.common.security.MerchantPrincipal;
 import com.payflow.event.service.RefundEventService;
 import com.payflow.infrastructure.gateway.GatewayRefundResponse;
 import com.payflow.infrastructure.gateway.RefundGateway;
@@ -13,6 +14,7 @@ import com.payflow.refund.entity.Refund;
 import com.payflow.refund.enums.RefundStatus;
 import com.payflow.refund.repository.RefundRepository;
 import com.payflow.refund.statemachine.RefundStateMachine;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,8 +23,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -75,6 +80,17 @@ class RefundServiceTest {
             .currency("INR")
             .status(PaymentStatus.CAPTURED)
             .build();
+
+        // Set up authenticated merchant context
+        MerchantPrincipal principal = new MerchantPrincipal(1L, "MER_001", "Test Merchant");
+        UsernamePasswordAuthenticationToken auth =
+                new UsernamePasswordAuthenticationToken(principal, null, Collections.emptyList());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -218,14 +234,13 @@ class RefundServiceTest {
     void createRefund_WrongMerchant_Rejected() {
         // Arrange
         when(refundRepository.findByMerchantIdAndIdempotencyKey(any(), any())).thenReturn(Optional.empty());
-        when(paymentRepository.findById(1L)).thenReturn(Optional.of(payment));
 
         // Act & Assert
         assertThatThrownBy(() -> refundService.createRefund(
             1L, 999L, new BigDecimal("100.00"), "INR", "Wrong merchant", "key-9"))
             .isInstanceOf(BusinessException.class)
             .extracting(e -> ((BusinessException) e).getErrorCode())
-            .isEqualTo("UNAUTHORIZED");
+            .isEqualTo("FORBIDDEN");
     }
 
     @Test

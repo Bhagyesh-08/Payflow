@@ -12,13 +12,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Fake Razorpay Reconciliation Provider.
+ * Simulated / Fake Razorpay Reconciliation Provider.
  * 
- * Used for testing and demonstration when real Razorpay reconciliation API is not available.
- * Returns deterministic test data.
+ * Generates synthetic records for local development, testing, and demonstration.
  * 
- * NOTE: Razorpay SDK 1.4.6 does not expose a specific reconciliation/settlement API
- * in a way suitable for this implementation. This fake provider demonstrates the pattern.
+ * IMPORTANT: Razorpay Java SDK 1.4.6 does not expose reconciliation or settlement
+ * APIs suitable for direct programmatic query. In production, settlement files
+ * (CSV/SFTP) must be ingested via scheduled batch jobs.
+ * 
+ * This provider is active when 'razorpay.reconciliation.fake-mode=true' (default: true).
  */
 @Component
 @Slf4j
@@ -27,7 +29,8 @@ public class FakeRazorpayReconciliationProvider implements ReconciliationDataPro
 
     @Override
     public List<GatewayPaymentRecord> getPaymentRecords(Long merchantId, LocalDate businessDate) {
-        log.info("Fake Razorpay Provider: Fetching records for merchant {} on {}", merchantId, businessDate);
+        log.warn("USING SYNTHETIC RECONCILIATION PROVIDER: Razorpay SDK 1.4.6 does not provide reconciliation APIs. " +
+                 "Returning synthetic test records for merchant {} on {}", merchantId, businessDate);
         
         // Return deterministic fake data for testing
         List<GatewayPaymentRecord> records = new ArrayList<>();

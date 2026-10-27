@@ -6,8 +6,8 @@ import org.springframework.stereotype.Component;
 /**
  * Mock Dispute Gateway.
  * 
- * Used when Razorpay SDK does not support dispute APIs.
- * Provides deterministic responses for testing.
+ * Used because Razorpay SDK 1.4.6 does not support dispute management APIs.
+ * Provides deterministic simulation responses for testing and development.
  */
 @Component
 @Slf4j
@@ -15,13 +15,13 @@ public class MockDisputeGateway implements DisputeGateway {
 
     @Override
     public GatewayDisputeResponse submitEvidence(GatewayDisputeRequest request) {
-        log.info("Mock: Submitting evidence for dispute: {}", request.getDisputeId());
+        log.warn("Mock Dispute Gateway: Simulating evidence submission for dispute: {} (MOCK_MODE)", request.getDisputeId());
         
         return GatewayDisputeResponse.builder()
             .success(true)
             .gatewayDisputeId("mock_disp_" + System.currentTimeMillis())
             .status("EVIDENCE_SUBMITTED")
-            .message("Evidence submitted successfully (mock)")
+            .message("Evidence submitted successfully (MOCK SIMULATION)")
             .build();
     }
 

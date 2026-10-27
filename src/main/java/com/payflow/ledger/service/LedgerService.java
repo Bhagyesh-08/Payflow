@@ -130,6 +130,15 @@ public class LedgerService {
     }
 
     /**
+     * Retrieves ledger transaction by internal transaction ID.
+     */
+    @Transactional(readOnly = true)
+    public LedgerTransaction getById(Long id) {
+        return transactionRepository.findById(id)
+            .orElseThrow(() -> new BusinessException("LEDGER_NOT_FOUND", "Ledger transaction not found: " + id));
+    }
+
+    /**
      * Retrieves ledger transaction by payment ID.
      */
     @Transactional(readOnly = true)

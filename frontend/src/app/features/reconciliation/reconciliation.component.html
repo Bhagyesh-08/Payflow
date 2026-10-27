@@ -1,0 +1,215 @@
+<div class="reconciliation-page container">
+  <div class="page-header">
+    <h2>Reconciliation</h2>
+    <p class="page-subtitle">Gateway reconciliation runs and discrepancy management</p>
+  </div>
+
+  <div class="simulation-notice">
+    <span class="notice-icon">⚠️</span>
+    <div>
+      <strong>Simulation Mode — Synthetic Provider Records</strong>
+      <p>Reconciliation uses synthetic records, not verified live Razorpay settlement feeds. Do not treat results as real bank or gateway settlement data.</p>
+    </div>
+  </div>
+
+  <div class="view-tabs">
+    <button 
+      class="tab-btn"
+      [class.active]="activeView === 'runs'"
+      (click)="switchView('runs')">
+      Reconciliation Runs
+    </button>
+    <button 
+      class="tab-btn"
+      [class.active]="activeView === 'discrepancies'"
+      (click)="switchView('discrepancies')">
+      Discrepancies
+    </button>
+  </div>
+
+  <!-- RUNS VIEW -->
+  <div *ngIf="activeView === 'runs'" class="runs-view">
+    <div class="section-header">
+      <h3>Reconciliation Runs</h3>
+      <button class="btn btn-primary" (click)="toggleRunForm()">
+        {{ showRunForm ? 'Cancel' : 'Start Reconciliation' }}
+      </button>
+    </div>
+
+    <div *ngIf="showRunForm" class="run-form">
+      <p class="form-notice">
+        ⚠️ This will create a reconciliation run using synthetic provider records, not live settlement data from Razorpay.
+      </p>
+
+      <div *ngIf="runFormError" class="error-message">{{ runFormError }}</div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="gateway">Gateway</label>
+          <select id="gateway" [(ngModel)]="runGateway" class="form-input" [disabled]="submittingRun">
+            <option value="RAZORPAY">RAZORPAY</option>
+            <option value="STRIPE">STRIPE</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="businessDate">Business Date</label>
+          <input 
+            type="date" 
+            id="businessDate" 
+            [(ngModel)]="runBusinessDate"
+            class="form-input"
+            [disabled]="submittingRun">
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button 
+          class="btn btn-primary"
+          (click)="startReconciliation()"
+          [disabled]="submittingRun || !runGateway || !runBusinessDate">
+          {{ submittingRun ? 'Starting...' : 'Start Run' }}
+        </button>
+        <button 
+          class="btn btn-secondary"
+          (click)="toggleRunForm()"
+          [disabled]="submittingRun">
+          Cancel
+        </button>
+      </div>
+    </div>
+
+    <div *ngIf="runsError" class="error-banner">
+      <span class="error-icon">❌</span>
+      <span>{{ runsError }}</span>
+    </div>
+
+    <div *ngIf="runsLoading" class="loading-state">
+      <p>Loading runs...</p>
+    </div>
+
+    <div *ngIf="!runsLoading && runs.length === 0 && !runsError" class="empty-state">
+      <span class="empty-icon">📊</span>
+      <p>No reconciliation runs found</p>
+      <small>Start a reconciliation run to begin</small>
+    </div>
+
+    <div *ngIf="!runsLoading && runs.length > 0" class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Gateway</th>
+            <th>Business Date</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Matched</th>
+            <th>Discrepancies</th>
+            <th>Started</th>
+            <th>Completed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let run of runs">
+            <td class="mono">{{ run.id }}</td>
+            <td>{{ run.gateway }}</td>
+            <td>{{ run.businessDate }}</td>
+            <td><span class="status-badge" [ngClass]="getStatusClass(run.status)">{{ run.status }}</span></td>
+            <td>{{ run.totalRecords ?? 'N/A' }}</td>
+            <td>{{ run.matchedRecords ?? 'N/A' }}</td>
+            <td>{{ run.discrepancyRecords ?? 'N/A' }}</td>
+            <td class="date">{{ formatDate(run.startedAt) }}</td>
+            <td class="date">{{ formatDate(run.completedAt) }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <button 
+          class="pagination-btn"
+          (click)="prevRunsPage()"
+          [disabled]="runsPage === 0">
+          Previous
+        </button>
+        <span class="pagination-info">
+          Page {{ runsPage + 1 }} of {{ runsTotalPages }} ({{ runsTotalElements }} total)
+        </span>
+        <button 
+          class="pagination-btn"
+          (click)="nextRunsPage()"
+          [disabled]="runsPage >= runsTotalPages - 1">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- DISCREPANCIES VIEW -->
+  <div *ngIf="activeView === 'discrepancies'" class="discrepancies-view">
+    <div class="section-header">
+      <h3>Discrepancies</h3>
+    </div>
+
+    <div *ngIf="discrepError" class="error-banner">
+      <span class="error-icon">❌</span>
+      <span>{{ discrepError }}</span>
+    </div>
+
+    <div *ngIf="discrepLoading" class="loading-state">
+      <p>Loading discrepancies...</p>
+    </div>
+
+    <div *ngIf="!discrepLoading && discrepancies.length === 0 && !discrepError" class="empty-state">
+      <span class="empty-icon">✅</span>
+      <p>No discrepancies found</p>
+      <small>All reconciliations matched successfully</small>
+    </div>
+
+    <div *ngIf="!discrepLoading && discrepancies.length > 0" class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>Gateway Ref</th>
+            <th>Payment ID</th>
+            <th>Internal Amount</th>
+            <th>Gateway Amount</th>
+            <th>Result</th>
+            <th>Type</th>
+            <th>Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let record of discrepancies">
+            <td class="mono">{{ record.runId }}</td>
+            <td class="mono">{{ record.gatewayReference || 'N/A' }}</td>
+            <td class="mono">{{ record.paymentId || 'N/A' }}</td>
+            <td class="amount">{{ formatAmount(record.internalAmount, record.currency) }}</td>
+            <td class="amount">{{ formatAmount(record.gatewayAmount, record.currency) }}</td>
+            <td><span class="result-badge" [ngClass]="getResultClass(record.result)">{{ record.result || 'N/A' }}</span></td>
+            <td>{{ record.discrepancyType || 'N/A' }}</td>
+            <td class="notes">{{ record.notes || 'N/A' }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <button 
+          class="pagination-btn"
+          (click)="prevDiscrepPage()"
+          [disabled]="discrepPage === 0">
+          Previous
+        </button>
+        <span class="pagination-info">
+          Page {{ discrepPage + 1 }} of {{ discrepTotalPages }} ({{ discrepTotalElements }} total)
+        </span>
+        <button 
+          class="pagination-btn"
+          (click)="nextDiscrepPage()"
+          [disabled]="discrepPage >= discrepTotalPages - 1">
+          Next
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

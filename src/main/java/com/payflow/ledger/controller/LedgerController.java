@@ -1,5 +1,6 @@
 package com.payflow.ledger.controller;
 
+import com.payflow.common.security.SecurityUtils;
 import com.payflow.ledger.dto.LedgerTransactionResponse;
 import com.payflow.ledger.entity.LedgerEntry;
 import com.payflow.ledger.entity.LedgerTransaction;
@@ -34,12 +35,13 @@ public class LedgerController {
     private final LedgerMapper ledgerMapper;
 
     /**
-     * Get ledger transaction by ID.
+     * Get ledger transaction by internal ID.
      */
     @GetMapping("/transactions/{id}")
     @Operation(summary = "Get ledger transaction by ID")
     public ResponseEntity<LedgerTransactionResponse> getTransactionById(@PathVariable Long id) {
-        LedgerTransaction transaction = ledgerService.getByPaymentId(String.valueOf(id));
+        LedgerTransaction transaction = ledgerService.getById(id);
+        SecurityUtils.validateMerchantAccess(transaction.getMerchantId());
         List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(transaction.getId());
         return ResponseEntity.ok(ledgerMapper.toResponse(transaction, entries));
     }
@@ -51,6 +53,7 @@ public class LedgerController {
     @Operation(summary = "Get ledger transactions for a payment")
     public ResponseEntity<LedgerTransactionResponse> getLedgerByPaymentId(@PathVariable String paymentId) {
         LedgerTransaction transaction = ledgerService.getByPaymentId(paymentId);
+        SecurityUtils.validateMerchantAccess(transaction.getMerchantId());
         List<LedgerEntry> entries = ledgerService.getEntriesByTransactionId(transaction.getId());
         return ResponseEntity.ok(ledgerMapper.toResponse(transaction, entries));
     }
@@ -67,6 +70,7 @@ public class LedgerController {
             @Parameter(description = "Sort by field") @RequestParam(defaultValue = "createdAt") String sortBy,
             @Parameter(description = "Sort direction") @RequestParam(defaultValue = "DESC") Sort.Direction direction) {
         
+        SecurityUtils.validateMerchantAccess(merchantId);
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
         Page<LedgerTransaction> transactions = ledgerService.getByMerchantId(merchantId, pageable);
         

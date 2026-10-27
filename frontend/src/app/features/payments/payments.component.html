@@ -1,0 +1,376 @@
+<div class="payments-page">
+  <div class="page-header">
+    <h2>Payments</h2>
+    <p class="page-subtitle">Payment lifecycle management and refund processing</p>
+  </div>
+
+  <!-- Search Section -->
+  <div class="search-section">
+    <div class="search-controls">
+      <select [(ngModel)]="searchType" class="search-type-select">
+        <option value="paymentId">Payment ID</option>
+        <option value="id">Database ID</option>
+      </select>
+      <input
+        type="text"
+        [(ngModel)]="searchValue"
+        (keyup.enter)="searchPayment()"
+        [placeholder]="searchType === 'id' ? 'Enter database ID (e.g., 1)' : 'Enter payment ID (e.g., PAY_...)'"
+        class="search-input"
+      />
+      <button
+        (click)="searchPayment()"
+        [disabled]="!searchValue.trim() || searching"
+        class="btn btn-primary"
+      >
+        {{ searching ? 'Searching...' : 'Search' }}
+      </button>
+      @if (selectedPayment) {
+        <button (click)="clearSelection()" class="btn btn-secondary">
+          Clear
+        </button>
+      }
+    </div>
+
+    @if (searchError) {
+      <div class="error-banner">
+        <span class="error-icon">⚠️</span>
+        <span>{{ searchError }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Payment Detail View -->
+  @if (selectedPayment) {
+    <div class="payment-detail-container">
+      <div class="detail-card">
+        <div class="detail-header">
+          <h3>Payment Details</h3>
+          @if (detailLoading) {
+            <span class="loading-text">Refreshing...</span>
+          }
+        </div>
+
+        @if (detailError) {
+          <div class="error-banner">
+            <span class="error-icon">⚠️</span>
+            <span>{{ detailError }}</span>
+          </div>
+        }
+
+        <div class="detail-grid">
+          <div class="detail-item">
+            <label>Payment ID</label>
+            <span class="mono">{{ selectedPayment.paymentId }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Database ID</label>
+            <span class="mono">{{ selectedPayment.id }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Order ID</label>
+            <span>{{ selectedPayment.orderId }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Merchant ID</label>
+            <span>{{ selectedPayment.merchantId }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Amount</label>
+            <span class="amount">{{ selectedPayment.amount }} {{ selectedPayment.currency }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Status</label>
+            <app-status-badge [type]="getStatusType(selectedPayment.status)" [label]="selectedPayment.status" />
+          </div>
+          <div class="detail-item">
+            <label>Payment Method</label>
+            <span>{{ selectedPayment.paymentMethod || 'N/A' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Gateway Payment ID</label>
+            <span class="mono">{{ selectedPayment.gatewayPaymentId || 'N/A' }}</span>
+          </div>
+          @if (selectedPayment.failureReason) {
+            <div class="detail-item full-width">
+              <label>Failure Reason</label>
+              <span class="error-text">{{ selectedPayment.failureReason }}</span>
+            </div>
+          }
+          <div class="detail-item">
+            <label>Created</label>
+            <span class="date">{{ selectedPayment.createdAt | date: 'medium' }}</span>
+          </div>
+          <div class="detail-item">
+            <label>Updated</label>
+            <span class="date">{{ selectedPayment.updatedAt | date: 'medium' }}</span>
+          </div>
+        </div>
+
+        <!-- Lifecycle Actions -->
+        <div class="actions-section">
+          <h4>Lifecycle Actions</h4>
+          <div class="action-buttons">
+            @if (canInitiate(selectedPayment)) {
+              <button
+                (click)="initiatePayment()"
+                [disabled]="actionInProgress"
+                class="btn btn-primary"
+              >
+                Initiate Payment
+              </button>
+            }
+            @if (canAuthorize(selectedPayment)) {
+              <button
+                (click)="authorizePayment()"
+                [disabled]="actionInProgress"
+                class="btn btn-primary"
+              >
+                Authorize Payment
+              </button>
+            }
+            @if (canCapture(selectedPayment)) {
+              <button
+                (click)="capturePayment()"
+                [disabled]="actionInProgress"
+                class="btn btn-primary"
+              >
+                Capture Payment
+              </button>
+            }
+            @if (canRefund(selectedPayment) && !showRefundForm) {
+              <button
+                (click)="openRefundForm()"
+                [disabled]="actionInProgress"
+                class="btn btn-secondary"
+              >
+                Create Refund
+              </button>
+            }
+            @if (!canInitiate(selectedPayment) && !canAuthorize(selectedPayment) && !canCapture(selectedPayment) && !canRefund(selectedPayment)) {
+              <span class="no-actions">No actions available for current status</span>
+            }
+          </div>
+          @if (actionInProgress) {
+            <span class="loading-text">Processing action...</span>
+          }
+        </div>
+
+        <!-- Lifecycle Timeline -->
+        <div class="timeline-section">
+          <h4>Status History</h4>
+          <div class="timeline">
+            <div class="timeline-item" [class.active]="selectedPayment.status === 'CREATED'">
+              <div class="timeline-marker"></div>
+              <span>Created</span>
+            </div>
+            <div class="timeline-item" [class.active]="['INITIATED', 'AUTHORIZED', 'CAPTURED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(selectedPayment.status)">
+              <div class="timeline-marker"></div>
+              <span>Initiated</span>
+            </div>
+            <div class="timeline-item" [class.active]="['AUTHORIZED', 'CAPTURED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(selectedPayment.status)">
+              <div class="timeline-marker"></div>
+              <span>Authorized</span>
+            </div>
+            <div class="timeline-item" [class.active]="['CAPTURED', 'REFUNDED', 'PARTIALLY_REFUNDED'].includes(selectedPayment.status)">
+              <div class="timeline-marker"></div>
+              <span>Captured</span>
+            </div>
+            @if (selectedPayment.status === 'FAILED') {
+              <div class="timeline-item active failed">
+                <div class="timeline-marker"></div>
+                <span>Failed</span>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- Refund Form -->
+        @if (showRefundForm) {
+          <div class="refund-form-section">
+            <h4>Create Refund</h4>
+            <form (submit)="$event.preventDefault(); submitRefund()" class="refund-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="refundAmount">Amount</label>
+                  <input
+                    type="number"
+                    id="refundAmount"
+                    [(ngModel)]="refundAmount"
+                    name="refundAmount"
+                    step="0.01"
+                    min="0.01"
+                    [max]="selectedPayment.amount"
+                    class="form-input"
+                    required
+                  />
+                  <small>Max: {{ selectedPayment.amount }} {{ selectedPayment.currency }}</small>
+                </div>
+                <div class="form-group">
+                  <label for="refundReason">Reason (optional)</label>
+                  <input
+                    type="text"
+                    id="refundReason"
+                    [(ngModel)]="refundReason"
+                    name="refundReason"
+                    class="form-input"
+                    placeholder="e.g., Customer request"
+                  />
+                </div>
+              </div>
+              <div class="form-actions">
+                <button
+                  type="submit"
+                  [disabled]="refundSubmitting"
+                  class="btn btn-primary"
+                >
+                  {{ refundSubmitting ? 'Submitting...' : 'Submit Refund' }}
+                </button>
+                <button
+                  type="button"
+                  (click)="closeRefundForm()"
+                  [disabled]="refundSubmitting"
+                  class="btn btn-secondary"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        }
+
+        <!-- Refunds List -->
+        <div class="refunds-section">
+          <h4>Refunds</h4>
+          @if (refundsLoading) {
+            <span class="loading-text">Loading refunds...</span>
+          }
+          @if (refundsError) {
+            <div class="error-banner">
+              <span class="error-icon">⚠️</span>
+              <span>{{ refundsError }}</span>
+            </div>
+          }
+          @if (!refundsLoading && refunds.length === 0) {
+            <p class="empty-text">No refunds for this payment</p>
+          }
+          @if (!refundsLoading && refunds.length > 0) {
+            <table class="refunds-table">
+              <thead>
+                <tr>
+                  <th>Refund ID</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Reason</th>
+                  <th>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (refund of refunds; track refund.id) {
+                  <tr>
+                    <td class="mono">{{ refund.refundId }}</td>
+                    <td class="amount">{{ refund.amount }} {{ refund.currency }}</td>
+                    <td>
+                      <app-status-badge [type]="getRefundStatusType(refund.status)" [label]="refund.status" />
+                    </td>
+                    <td>{{ refund.reason || 'N/A' }}</td>
+                    <td class="date">{{ refund.createdAt | date: 'short' }}</td>
+                  </tr>
+                  @if (refund.failureReason) {
+                    <tr class="failure-row">
+                      <td colspan="5" class="failure-reason">
+                        <strong>Failure:</strong> {{ refund.failureReason }}
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Payments List -->
+  @if (!selectedPayment) {
+    <div class="payments-list-section">
+      <h3>Recent Payments</h3>
+
+      @if (loading) {
+        <app-loading-spinner />
+      }
+
+      @if (error) {
+        <div class="error-banner">
+          <span class="error-icon">⚠️</span>
+          <span>{{ error }}</span>
+        </div>
+      }
+
+      @if (!loading && !error && payments.length === 0) {
+        <app-empty-state
+          icon="💳"
+          title="No Payments"
+          message="No payments found for this merchant"
+        />
+      }
+
+      @if (!loading && !error && payments.length > 0) {
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>Payment ID</th>
+              <th>Order ID</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Method</th>
+              <th>Created</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (payment of payments; track payment.id) {
+              <tr>
+                <td class="mono">{{ payment.paymentId }}</td>
+                <td>{{ payment.orderId }}</td>
+                <td class="amount">{{ payment.amount }} {{ payment.currency }}</td>
+                <td>
+                  <app-status-badge [type]="getStatusType(payment.status)" [label]="payment.status" />
+                </td>
+                <td>{{ payment.paymentMethod || 'N/A' }}</td>
+                <td class="date">{{ payment.createdAt | date: 'short' }}</td>
+                <td>
+                  <button (click)="selectPaymentFromList(payment)" class="btn-link">
+                    View Details
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+
+        <div class="pagination">
+          <button
+            class="pagination-btn"
+            (click)="previousPage()"
+            [disabled]="page?.first"
+          >
+            Previous
+          </button>
+          <span class="pagination-info">
+            Page {{ (page?.number ?? 0) + 1 }} of {{ page?.totalPages ?? 1 }}
+            ({{ page?.totalElements ?? 0 }} total payments)
+          </span>
+          <button
+            class="pagination-btn"
+            (click)="nextPage()"
+            [disabled]="page?.last"
+          >
+            Next
+          </button>
+        </div>
+      }
+    </div>
+  }
+</div>

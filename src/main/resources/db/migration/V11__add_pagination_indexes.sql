@@ -1,4 +1,4 @@
--- V10: Add indexes for pagination performance
+-- V11: Add indexes for pagination performance
 -- Phase 9: Production Hardening & API Quality
 
 -- Ledger transactions pagination (merchant_id + createdAt for sorting)
@@ -12,6 +12,10 @@ ON reconciliation_runs(merchant_id, created_at DESC);
 -- Reconciliation records pagination for discrepancies
 CREATE INDEX IF NOT EXISTS idx_reconciliation_records_merchant_result 
 ON reconciliation_records(merchant_id, result, created_at DESC);
+
+-- Payments pagination (merchant_id + createdAt for sorting)
+CREATE INDEX IF NOT EXISTS idx_payments_merchant_created 
+ON payments(merchant_id, created_at DESC);
 
 -- Comments:
 -- These indexes support efficient pagination queries with:

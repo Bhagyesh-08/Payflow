@@ -20,7 +20,6 @@ public class MerchantResponse {
     private String merchantCode;
     private MerchantStatus status;
     private String address;
-    private String apiKey;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

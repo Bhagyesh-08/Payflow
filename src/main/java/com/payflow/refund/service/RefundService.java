@@ -2,6 +2,7 @@ package com.payflow.refund.service;
 
 import com.payflow.common.exception.BusinessException;
 import com.payflow.common.observability.BusinessMetrics;
+import com.payflow.common.security.SecurityUtils;
 import com.payflow.common.util.IdGenerator;
 import com.payflow.event.domain.RefundEventType;
 import com.payflow.event.service.RefundEventService;
@@ -60,6 +61,9 @@ public class RefundService {
         log.info("Creating refund: payment={}, merchant={}, amount={}, idempotency={}", 
             paymentId, merchantId, amount, idempotencyKey);
 
+        // Validate merchant parameter matches authenticated merchant
+        SecurityUtils.validateMerchantAccess(merchantId);
+
         // Validate amount
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new BusinessException("INVALID_AMOUNT", "Refund amount must be positive");
@@ -70,9 +74,7 @@ public class RefundService {
             .orElseThrow(() -> new BusinessException("PAYMENT_NOT_FOUND", "Payment not found: " + paymentId));
 
         // Verify merchant ownership
-        if (!payment.getMerchant().getId().equals(merchantId)) {
-            throw new BusinessException("UNAUTHORIZED", "Payment belongs to different merchant");
-        }
+        SecurityUtils.validateMerchantAccess(payment.getMerchant().getId());
 
         // Rule E: Only refund captured payments
         if (payment.getStatus() != PaymentStatus.CAPTURED) {

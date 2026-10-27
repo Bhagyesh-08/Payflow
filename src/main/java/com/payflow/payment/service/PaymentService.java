@@ -338,4 +338,11 @@ public class PaymentService {
         
         return paymentMapper.toResponse(payment);
     }
+
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Page<PaymentResponse> getPaymentsForMerchant(
+            Long merchantId, org.springframework.data.domain.Pageable pageable) {
+        org.springframework.data.domain.Page<Payment> payments = paymentRepository.findByMerchantId(merchantId, pageable);
+        return payments.map(paymentMapper::toResponse);
+    }
 }

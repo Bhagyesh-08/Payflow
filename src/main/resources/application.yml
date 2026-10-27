@@ -83,6 +83,8 @@ razorpay:
   webhook-secret: ${RAZORPAY_WEBHOOK_SECRET:}
   timeout-seconds: 30
   test-mode: true
+  reconciliation:
+    fake-mode: true # Default true: uses synthetic records. Razorpay SDK 1.4.6 has no reconciliation API.
 
 # Kafka Configuration
 spring:

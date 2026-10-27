@@ -3,6 +3,7 @@ package com.payflow.merchant.service;
 import com.payflow.common.exception.DuplicateResourceException;
 import com.payflow.common.exception.ResourceNotFoundException;
 import com.payflow.merchant.dto.CreateMerchantRequest;
+import com.payflow.merchant.dto.MerchantRegistrationResponse;
 import com.payflow.merchant.dto.MerchantResponse;
 import com.payflow.merchant.entity.Merchant;
 import com.payflow.merchant.enums.MerchantStatus;
@@ -66,16 +67,26 @@ class MerchantServiceTest {
 
     @Test
     void createMerchant_Success() {
+        MerchantRegistrationResponse regResponse = MerchantRegistrationResponse.builder()
+                .id(1L)
+                .businessName("Test Business")
+                .email("test@example.com")
+                .merchantCode("MER_ABC123")
+                .apiKey("ak_test_secret_key_123")
+                .status(MerchantStatus.ACTIVE)
+                .build();
+
         when(merchantRepository.existsByEmail(request.getEmail())).thenReturn(false);
         when(merchantRepository.existsByBusinessName(request.getBusinessName())).thenReturn(false);
         when(merchantRepository.save(any(Merchant.class))).thenReturn(merchant);
-        when(merchantMapper.toResponse(merchant)).thenReturn(response);
+        when(merchantMapper.toRegistrationResponse(merchant)).thenReturn(regResponse);
 
-        MerchantResponse result = merchantService.createMerchant(request);
+        MerchantRegistrationResponse result = merchantService.createMerchant(request);
 
         assertThat(result).isNotNull();
         assertThat(result.getBusinessName()).isEqualTo("Test Business");
         assertThat(result.getEmail()).isEqualTo("test@example.com");
+        assertThat(result.getApiKey()).isEqualTo("ak_test_secret_key_123");
         verify(merchantRepository, times(1)).save(any(Merchant.class));
     }
 

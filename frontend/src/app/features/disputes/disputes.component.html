@@ -1,0 +1,130 @@
+<div class="disputes-page container">
+  <div class="page-header">
+    <h2>Disputes</h2>
+    <p class="page-subtitle">Manage payment disputes and submit evidence</p>
+  </div>
+
+  <div class="mock-notice">
+    <span class="notice-icon">⚠️</span>
+    <div>
+      <strong>Dispute gateway: Mock Simulation Mode</strong>
+      <p>Evidence submission simulates dispute gateway behavior. This is not connected to a real payment provider.</p>
+    </div>
+  </div>
+
+  <div *ngIf="error" class="error-banner">
+    <span class="error-icon">❌</span>
+    <span>{{ error }}</span>
+  </div>
+
+  <div class="disputes-section">
+    <div *ngIf="loading" class="loading-state">
+      <p>Loading disputes...</p>
+    </div>
+
+    <div *ngIf="!loading && disputes.length === 0 && !error" class="empty-state">
+      <span class="empty-icon">📋</span>
+      <p>No disputes found</p>
+      <small>Disputes will appear here when payments are challenged</small>
+    </div>
+
+    <div *ngIf="!loading && disputes.length > 0" class="disputes-table-container">
+      <table class="disputes-table">
+        <thead>
+          <tr>
+            <th>Dispute ID</th>
+            <th>Payment ID</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Reason</th>
+            <th>Evidence Due</th>
+            <th>Created</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <ng-container *ngFor="let dispute of disputes">
+            <tr [class.expanded]="expandedRow === dispute.disputeId">
+              <td class="mono">{{ dispute.disputeId }}</td>
+              <td class="mono">{{ dispute.paymentId }}</td>
+              <td class="amount">{{ formatAmount(dispute.amount, dispute.currency) }}</td>
+              <td><app-status-badge [status]="dispute.status" /></td>
+              <td>{{ dispute.reason || 'N/A' }}</td>
+              <td class="date">{{ formatDate(dispute.evidenceDueAt) }}</td>
+              <td class="date">{{ formatDate(dispute.createdAt) }}</td>
+              <td>
+                <button 
+                  class="btn-link" 
+                  (click)="toggleRow(dispute.disputeId)"
+                  [attr.aria-expanded]="expandedRow === dispute.disputeId">
+                  {{ expandedRow === dispute.disputeId ? 'Hide' : 'Details' }}
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="expandedRow === dispute.disputeId" class="detail-row">
+              <td colspan="8">
+                <div class="detail-panel">
+                  <div class="detail-grid">
+                    <div class="detail-item">
+                      <label>Gateway</label>
+                      <span>{{ dispute.gateway }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <label>Gateway Dispute ID</label>
+                      <span class="mono">{{ dispute.gatewayDisputeId || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <label>Resolution Reason</label>
+                      <span>{{ dispute.resolutionReason || 'N/A' }}</span>
+                    </div>
+                    <div class="detail-item">
+                      <label>Resolved At</label>
+                      <span class="date">{{ formatDate(dispute.resolvedAt) }}</span>
+                    </div>
+                  </div>
+
+                  <div *ngIf="canSubmitEvidence(dispute)" class="evidence-section">
+                    <h4>Submit Evidence</h4>
+                    <p class="section-hint">Provide evidence to challenge this dispute</p>
+                    
+                    <div *ngIf="evidenceError" class="error-message">{{ evidenceError }}</div>
+
+                    <div class="form-group">
+                      <label for="evidence-{{ dispute.disputeId }}">Evidence Description</label>
+                      <textarea 
+                        [id]="'evidence-' + dispute.disputeId"
+                        [(ngModel)]="evidenceDescription"
+                        rows="4"
+                        class="form-input"
+                        placeholder="Describe the evidence you are submitting..."
+                        [disabled]="submittingEvidence"></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                      <button 
+                        class="btn btn-primary" 
+                        (click)="submitEvidence(dispute)"
+                        [disabled]="submittingEvidence || !evidenceDescription.trim()">
+                        {{ submittingEvidence ? 'Submitting...' : 'Submit Evidence' }}
+                      </button>
+                      <button 
+                        class="btn btn-secondary" 
+                        (click)="toggleRow(dispute.disputeId)"
+                        [disabled]="submittingEvidence">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+
+                  <div *ngIf="!canSubmitEvidence(dispute)" class="info-message">
+                    Evidence can only be submitted for disputes in OPEN status.
+                  </div>
+                </div>
+              </td>
+            </tr>
+          </ng-container>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

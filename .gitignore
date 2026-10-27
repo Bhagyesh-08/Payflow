@@ -41,3 +41,20 @@ build/
 ### OS ###
 .DS_Store
 Thumbs.db
+
+### Angular/Frontend ###
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/coverage/
+frontend/.pnp/
+frontend/.pnp.js
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+
+### Environment ###
+.env
+.env.local
+.env.*.local
+*.local

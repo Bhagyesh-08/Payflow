@@ -4,6 +4,7 @@ import com.payflow.common.exception.DuplicateResourceException;
 import com.payflow.common.exception.ResourceNotFoundException;
 import com.payflow.common.util.IdGenerator;
 import com.payflow.merchant.dto.CreateMerchantRequest;
+import com.payflow.merchant.dto.MerchantRegistrationResponse;
 import com.payflow.merchant.dto.MerchantResponse;
 import com.payflow.merchant.entity.Merchant;
 import com.payflow.merchant.enums.MerchantStatus;
@@ -23,7 +24,7 @@ public class MerchantService {
     private final MerchantMapper merchantMapper;
 
     @Transactional
-    public MerchantResponse createMerchant(CreateMerchantRequest request) {
+    public MerchantRegistrationResponse createMerchant(CreateMerchantRequest request) {
         log.info("Creating merchant with email: {}", request.getEmail());
 
         if (merchantRepository.existsByEmail(request.getEmail())) {
@@ -47,7 +48,7 @@ public class MerchantService {
         Merchant saved = merchantRepository.save(merchant);
         log.info("Merchant created successfully with code: {}", saved.getMerchantCode());
 
-        return merchantMapper.toResponse(saved);
+        return merchantMapper.toRegistrationResponse(saved);
     }
 
     @Transactional(readOnly = true)
